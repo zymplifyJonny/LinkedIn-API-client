@@ -97,7 +97,7 @@ class LinkedIn implements LinkedInInterface
             return false;
         }
 
-        $user = $this->api('GET', '/v1/people/~:(id,firstName,lastName)', ['format' => 'json', 'response_data_type' => 'array']);
+        $user = $this->api('GET', '/v2/me');
 
         return !empty($user['id']);
     }
@@ -110,8 +110,14 @@ class LinkedIn implements LinkedInInterface
         // Add access token to the headers
         $options['headers']['Authorization'] = sprintf('Bearer %s', (string) $this->getAccessToken());
 
+        $options['headers']['X-Restli-Protocol-Version'] = '2.0.0';
+
         // Do logic and adjustments to the options
         $requestFormat = $this->filterRequestOption($options);
+
+        if ($options['ispost']) {
+            unset($options['query']);
+        }
 
         // Generate an url
         $url = $this->getUrlGenerator()->getUrl(
