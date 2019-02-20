@@ -15,7 +15,7 @@ class ResponseConverter
      * @param string            $requestFormat
      * @param string            $dataType
      *
-     * @return ResponseInterface|\Psr\Http\Message\StreamInterface|\SimpleXMLElement|string
+     * @return ResponseInterface|\Psr\Http\Message\StreamInterface|\SimpleXMLElement|string|array
      *
      * @throws InvalidArgumentException
      * @throws LinkedInTransferException
@@ -46,11 +46,11 @@ class ResponseConverter
     /**
      * @param ResponseInterface $response
      *
-     * @return string
+     * @return array
      */
     public static function convertToArray(ResponseInterface $response)
     {
-        return json_decode($response->getBody(), true);
+        return array(json_decode($response->getBody(), true), $response->getHeaders(), $response->getStatusCode());
     }
 
     /**
