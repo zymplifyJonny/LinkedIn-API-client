@@ -115,9 +115,7 @@ class LinkedIn implements LinkedInInterface
         // Do logic and adjustments to the options
         $requestFormat = $this->filterRequestOption($options);
 
-        if ($options['ispost']) {
-            unset($options['query']);
-        }
+        unset($options['query']);
 
         // Generate an url
         $url = $this->getUrlGenerator()->getUrl(
