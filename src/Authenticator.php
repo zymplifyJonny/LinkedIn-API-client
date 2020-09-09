@@ -87,6 +87,21 @@ class Authenticator implements AuthenticatorInterface
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function fetchNewAccessTokenUsingRefreshToken(LinkedInUrlGeneratorInterface $urlGenerator, $refreshToken)
+    {
+        try {
+            $accessToken = $this->getAccessTokenUsingRefreshToken($urlGenerator, $refreshToken);
+        } catch (LinkedInException $e) {
+            // code was bogus, so everything based on it should be invalidated.
+            throw $e;
+        }
+
+        return $accessToken;
+    }
+
+    /**
      * Retrieves an access token for the given authorization code
      * (previously generated from www.linkedin.com on behalf of
      * a specific user). The authorization code is sent to www.linkedin.com
@@ -116,6 +131,53 @@ class Authenticator implements AuthenticatorInterface
                     'grant_type' => 'authorization_code',
                     'code' => $code,
                     'redirect_uri' => $redirectUri,
+                    'client_id' => $this->appId,
+                    'client_secret' => $this->appSecret,
+                ]
+            );
+
+            $response = ResponseConverter::convertToArray($this->getRequestManager()->sendRequest('POST', $url, $headers, $body));
+        } catch (LinkedInTransferException $e) {
+            // most likely that user very recently revoked authorization.
+            // In any event, we don't have an access token, so throw an exception.
+            throw new LinkedInException('Could not get access token: The user may have revoked the authorization response from LinkedIn.com was empty.', $e->getCode(), $e);
+        }
+
+        if (empty($response)) {
+            throw new LinkedInException('Could not get access token: The response from LinkedIn.com was empty.');
+        }
+
+        $tokenData = array_merge(['access_token' => null, 'expires_in' => null, 'refresh_token' => null, 'refresh_token_expires_in' => null], $response[0]);
+        $token = new AccessToken($tokenData['access_token'], $tokenData['expires_in'], $tokenData['refresh_token'], $tokenData['refresh_token_expires_in']);
+
+        if (!$token->hasToken()) {
+            throw new LinkedInException('Could not get access token: The response from LinkedIn.com did not contain a token.');
+        }
+
+        return $token;
+    }
+
+    /**
+     * @param LinkedInUrlGeneratorInterface $urlGenerator
+     * @param string                        $refreshToken         A refresh token.
+     *
+     * @return AccessToken An access token exchanged for the refresh token.
+     *
+     * @throws LinkedInException
+     */
+    protected function getAccessTokenUsingRefreshToken(LinkedInUrlGeneratorInterface $urlGenerator, $refreshToken)
+    {
+        if (empty($refreshToken)) {
+            throw new LinkedInException('Could not get access token: The refresh token was empty.');
+        }
+
+        try {
+            $url = $urlGenerator->getUrl('www', 'oauth/v2/accessToken');
+            $headers = ['Content-Type' => 'application/x-www-form-urlencoded'];
+            $body = http_build_query(
+                [
+                    'grant_type' => 'refresh_token',
+                    'refresh_token' => $refreshToken,
                     'client_id' => $this->appId,
                     'client_secret' => $this->appSecret,
                 ]

@@ -306,6 +306,21 @@ class LinkedIn implements LinkedInInterface
     /**
      * {@inheritdoc}
      */
+    public function getAccessTokenFromRefreshToken($refreshToken)
+    {
+        if ($this->accessToken === null) {
+            if (null !== $newAccessToken = $this->getAuthenticator()->fetchNewAccessTokenUsingRefreshToken($this->getUrlGenerator(), $refreshToken)) {
+                $this->setAccessToken($newAccessToken);
+            }
+        }
+
+        // return the new access token or null if none found
+        return $this->accessToken;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function setAccessToken($accessToken)
     {
         if (!($accessToken instanceof AccessToken)) {
