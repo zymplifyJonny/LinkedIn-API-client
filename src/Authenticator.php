@@ -132,8 +132,8 @@ class Authenticator implements AuthenticatorInterface
             throw new LinkedInException('Could not get access token: The response from LinkedIn.com was empty.');
         }
 
-        $tokenData = array_merge(['access_token' => null, 'expires_in' => null], $response[0]);
-        $token = new AccessToken($tokenData['access_token'], $tokenData['expires_in']);
+        $tokenData = array_merge(['access_token' => null, 'expires_in' => null, 'refresh_token' => null, 'refresh_token_expires_in' => null], $response[0]);
+        $token = new AccessToken($tokenData['access_token'], $tokenData['expires_in'], $tokenData['refresh_token'], $tokenData['refresh_token_expires_in']);
 
         if (!$token->hasToken()) {
             throw new LinkedInException('Could not get access token: The response from LinkedIn.com did not contain a token.');
