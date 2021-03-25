@@ -161,11 +161,13 @@ class LinkedIn implements LinkedInInterface
                 $multipart = [
                     [
                         'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
-                        'contents' => $query
+                        'contents' => $query,
+                        'name' => "queryString"
                     ],
                     [
                         'headers' => ['Content-Type' => 'application/json'],
-                        'contents' => json_encode($options['json'])
+                        'contents' => json_encode($options['json']),
+                        'name' => "postContent"
                     ]
                 ];
                 $options['body'] = new MultipartStream($multipart, $customBoundary);
