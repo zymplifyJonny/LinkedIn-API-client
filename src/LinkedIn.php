@@ -12,6 +12,7 @@ use Happyr\LinkedIn\Storage\DataStorageInterface;
 use Http\Client\HttpClient;
 use Http\Message\MessageFactory;
 use Psr\Http\Message\ResponseInterface;
+use GuzzleHttp\Psr7\MultipartStream;
 
 /**
  * Class LinkedIn lets you talk to LinkedIn api.
@@ -113,7 +114,7 @@ class LinkedIn implements LinkedInInterface
         $options['headers']['X-Restli-Protocol-Version'] = '2.0.0';
 
         // Do logic and adjustments to the options
-        $requestFormat = $this->filterRequestOption($options);
+        $requestFormat = $this->filterRequestOption($options, $resource, $method);
 
         unset($options['query']);
 
@@ -144,29 +145,62 @@ class LinkedIn implements LinkedInInterface
      *
      * @return string the request format to use
      */
-    protected function filterRequestOption(array &$options)
+    protected function filterRequestOption(array &$options, &$resource, &$method)
     {
+        $query = "";
+        $customBoundary = "--".md5(time());
+        preg_match("/\/\w+\?(.*)/", $resource, $matches);
+        if(!empty($matches[1])){
+            $query = $matches[1];
+            $resource = rtrim(str_replace($query, "", $resource), "?");
+        }
+
         if (isset($options['json'])) {
             $options['format'] = 'json';
-            $options['body'] = json_encode($options['json']);
+            if(!empty($query)) {
+                $multipart = [
+                    [
+                        'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
+                        'contents' => $query
+                    ],
+                    [
+                        'headers' => ['Content-Type' => 'application/json'],
+                        'contents' => json_encode($options['json'])
+                    ]
+                ];
+                $options['body'] = new MultipartStream($multipart, $customBoundary);
+            } else {
+                $options['body'] = json_encode($options['json']);
+            }
         } elseif (!isset($options['format'])) {
             // Make sure we always have a format
+            if(!empty($query)){
+                $options['body'] = $query;
+            }
             $options['format'] = $this->getFormat();
         }
 
+        // Don't need this anymore
         // Set correct headers for this format
-        switch ($options['format']) {
-            case 'xml':
-                $options['headers']['Content-Type'] = 'text/xml';
-                break;
-            case 'json':
-                $options['headers']['Content-Type'] = 'application/json';
-                $options['headers']['x-li-format'] = 'json';
-                $options['query']['format'] = 'json';
-                break;
-            default:
-                // Do nothing
+        //switch ($options['format']) {
+        //    case 'xml':
+        //        $options['headers']['Content-Type'] = 'text/xml';
+        //        break;
+        //    case 'json':
+        //        $options['headers']['x-li-format'] = 'json';
+        //        //$options['query']['format'] = 'json';
+        //        break;
+        //    default:
+        //        // Do nothing
+        //}
+
+        $options['headers']['X-HTTP-Method-Override'] = $method;
+        if($method == "GET"){
+            $options['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
+        } else {
+            $options['headers']['Content-Type'] = 'Content-Type: multipart/mixed; boundary='.$customBoundary;
         }
+        $method = "POST";
 
         return $options['format'];
     }
