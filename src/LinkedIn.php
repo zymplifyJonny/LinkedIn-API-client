@@ -166,7 +166,7 @@ class LinkedIn implements LinkedInInterface
                     ],
                     [
                         'headers' => ['Content-Type' => 'application/json'],
-                        'contents' => json_encode($options['json']),
+                        'contents' => json_encode($options['json'], JSON_UNESCAPED_SLASHES),
                         'name' => "postContent"
                     ]
                 ];
