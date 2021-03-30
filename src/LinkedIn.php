@@ -171,6 +171,15 @@ class LinkedIn implements LinkedInInterface
                     ]
                 ];
                 $options['body'] = new MultipartStream($multipart, $customBoundary);
+            } else if($method != "GET"){
+                $multipart = [
+                    [
+                        'headers' => ['Content-Type' => 'application/json'],
+                        'contents' => json_encode($options['json'], JSON_UNESCAPED_SLASHES),
+                        'name' => "postContent"
+                    ]
+                ];
+                $options['body'] = new MultipartStream($multipart, $customBoundary);
             } else {
                 $options['body'] = json_encode($options['json']);
             }
